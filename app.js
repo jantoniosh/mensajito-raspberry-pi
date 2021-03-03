@@ -5,6 +5,8 @@ const ConfigInfo = require('./modules/ConfigInfo');
 const ConWifi = require('./modules/ConWiFi');
 const DataBase = require('./clases/DataBase');
 const Stream = require('./clases/Stream');
+const Record = require('./clases/Record');
+// const isOnline = require('is-online');
 
 const app = express();
 app.use(cors());
@@ -16,10 +18,20 @@ const port = 3000;
 
 const dataBase = new DataBase("localhost", "mensajito", "mensajito2021", "mensajito");
 const stream = new Stream();
+const record = new Record();
+
 
 // Servidor Socket.io
 io.on('connection', (socket) => {
     console.log('a user connected');
+
+    const contador = async () => {
+        let escuchas = await stream.readListeners();
+        console.log(escuchas);
+        socket.emit("escuchas", escuchas);
+    }
+    
+    let event_contador;
     socket.on('stream', async (msg) => {
         console.log(msg);
         if (msg) {
@@ -28,18 +40,26 @@ io.on('connection', (socket) => {
             let info = await ConfigInfo.getInfo();
             stream.setDatos(resp.nombre, resp.ubicacion, resp.descripcion, info.link, info.mountpoint);
             stream.getConfigFile();
+            // stream.readListeners();
+            event_contador = setInterval(await contador, 2000);
+            stream.runStream();
         }
         else {
             console.log('Parar Transmisión');
+            stream.stopStream();
+            clearInterval(event_contador);
         }
     });
     socket.on('record', (msg) => {
         console.log(msg);
-        if (msg) {
-            console.log('Iniciar Grabación');
+        let rec = msg.split('@');
+        if (rec[0] === 'true') {
+            record.setDatos(rec[1]);
+            record.runRecord();
         }
         else {
-            console.log('Parar Grabación');
+            // console.log('Parar Grabación');
+            record.stopRecord();
         }
     });
 });
