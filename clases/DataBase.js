@@ -33,6 +33,7 @@ class DataBase {
                 let facebook = '';
                 let instagram = '';
                 let twitter = '';
+                let mixcloud = '';
                 let web = '';
                 let tags = '';
                 rows.forEach((row) => {
@@ -42,6 +43,7 @@ class DataBase {
                     facebook = row.facebook;
                     instagram = row.instagram;
                     twitter = row.twitter;
+                    mixcloud = row.mixcloud;
                     web = row.web;
                     tags = row.tags;
                 });
@@ -52,6 +54,7 @@ class DataBase {
                     facebook: facebook,
                     instagram: instagram,
                     twitter: twitter,
+                    mixcloud: mixcloud,
                     web: web,
                     tags: tags
                 };
@@ -60,9 +63,8 @@ class DataBase {
         });
     }
 
-    postConfig(nombre, ubicacion, descripcion, facebook, instagram, twitter, web, tags) {
-        let sql = `UPDATE configuracion SET nombre='${nombre}', ubicacion='${ubicacion}', descripcion='${descripcion}', facebook='${facebook}', instagram='${instagram}', twitter='${twitter}', web='${web}', tags='${tags}' WHERE id='1'`;
-        console.log(sql);
+    postConfig(nombre, ubicacion, descripcion, facebook, instagram, twitter, mixcloud, web, tags) {
+        let sql = `UPDATE configuracion SET nombre='${nombre}', ubicacion='${ubicacion}', descripcion='${descripcion}', facebook='${facebook}', instagram='${instagram}', twitter='${twitter}', mixcloud='${mixcloud}',web='${web}', tags='${tags}' WHERE id='1'`;
         this.con.query(sql, (err, result) => {
             if (err) throw err;
             console.log(result.affectedRows + " record(s) updated");
