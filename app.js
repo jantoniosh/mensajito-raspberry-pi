@@ -26,16 +26,14 @@ const record = new Record();
 const usbDetect = require('usb-detection');
 usbDetect.startMonitoring();
 
+
 // Servidor Socket.io
 io.on('connection', (socket) => {
     console.log('a user connected');
 
     const contador = async (mt) => {
         let escuchas = await stream.readListeners();
-        console.log(escuchas);
         socket.emit("escuchas", escuchas);
-        console.log("hola");
-        // socket_gen.emit("en_vivo", `${mt}@1`);
     }
 
     let event_contador;
@@ -55,9 +53,6 @@ io.on('connection', (socket) => {
             clearInterval(event_contador);
             console.log('Parar Transmisión');
             stream.stopStream();
-            // setTimeout(() => {
-            //     socket_gen.emit("en_vivo", `${info.mountpoint}@0`);
-            // }, 2000);
         }
     });
     socket.on('record', (msg) => {
@@ -70,6 +65,38 @@ io.on('connection', (socket) => {
         else {
             record.stopRecord();
         }
+    });
+
+    socket.on('imagen', async (msg) => {
+        console.log(msg);
+        if (msg.tipo === 'Imagen Transmisor') {
+            ConUSB.copyFile(msg.nombre);
+        }
+        else if (msg.tipo === 'Imagen Plataforma' || msg.tipo === 'Imagen Header') {
+            let resp = await dataBase.getConfig();
+            let info = await ConfigInfo.getInfo();
+            let tipo = '';
+            let json_socket = {
+                "name": resp.nombre,
+                "description": resp.descripcion,
+                "slug": info.mountpoint,
+                "facebook_url": resp.facebook,
+                "twitter_url": resp.twitter,
+                "instagram_url": resp.instagram,
+                "web_url": resp.web,
+                "locacion": resp.ubicacion,
+                "mixcloud": resp.mixcloud,
+                "trans_url": `https://radio.mensajito.mx/${info.mountpoint}`
+            }
+            msg.tipo === 'Imagen Plataforma' ? tipo = 'logo' : tipo = 'header';
+            ConUSB.copyLogo(msg.nombre, info.mountpoint, tipo);
+            console.log(json_socket);
+            socket_gen.emit("categoria", json_socket);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log("Usuario Desconectado");
     });
 });
 
@@ -147,9 +174,11 @@ app.get("/programas", async (req, res) => {
 app.get("/usb_files", async (req, res) => {
     let a = await ConUSB.list_files();
     console.log(a);
-    // console.log(dir);
-    // res.send(dir);
     res.send(a);
+});
+
+app.get("/get_img", async (req, res) => {
+    res.sendFile('/var/www/html/img/fondo.jpg');
 });
 
 http.listen(port, () => {

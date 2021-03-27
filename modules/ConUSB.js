@@ -1,5 +1,8 @@
 const path = require('path');
+const FormData = require('form-data');
 const fs = require('fs');
+const axios = require('axios');
+const { exec } = require("child_process");
 
 const detect_usb = () => {
     const dirname = '/media/pi';
@@ -23,18 +26,88 @@ const list_files = () => {
                 let usbPath = `${dirname}/${usb}`;
                 fs.readdir(usbPath, (err, filenames) => {
                     let files_jpg = filenames.filter(el => path.extname(el) === '.jpg');
-                    let files_png = filenames.filter(el => path.extname(el) === '.png');
-                    let files = files_jpg.concat(files_png);
-                    // console.log(files);
-                    resolve(files);
+                    resolve(files_jpg);
                 });
             });
         }
         else {
-            resolve("sin archivos");
+            resolve(["sin archivos"]);
         }
     });
 };
 
+const copyFile = async (archivo) => {
+    const dirname = '/media/pi';
+    let dir = await detect_usb();
+    console.log(dir);
+    if (dir) {
+        fs.readdir(dirname, (err, filenames) => {
+            if (err) {
+                onError(err);
+                return;
+            }
+            let usb = filenames[0];
+            let usbPath = `${dirname}/${usb}`;
+            let cmd = `sudo cp ${usbPath}/${archivo} /var/www/html/img/fondo.jpg`;
+            // Aquí se copia el archivo
+            console.log(cmd);
+            exec(cmd, (error, stdout, stderr) => {
+                if (error) {
+                    return;
+                }
+
+                if (stderr) {
+                    return;
+                }
+            });
+            cmd = 'sudo rm -r /home/pi/.cache/chromium/Default';
+            exec(cmd, (error, stdout, stderr) => {
+                if (error) {
+                    return;
+                }
+
+                if (stderr) {
+                    return;
+                }
+            });
+        });
+    }
+}
+
+const copyLogo = async (archivo, id_trans, tipo) => {
+    const dirname = '/media/pi';
+    let dir = await detect_usb();
+    console.log(dir);
+    if (dir) {
+        fs.readdir(dirname, (err, filenames) => {
+            if (err) {
+                onError(err);
+                return;
+            }
+            let usb = filenames[0];
+            let usbPath = `${dirname}/${usb}/${archivo}`;
+            const form = new FormData();
+            const stream = fs.createReadStream(usbPath);
+            form.append('imagen', stream);
+            form.append('id', id_trans);
+            form.append('tipo', tipo);
+            const formHeaders = form.getHeaders();
+            axios.post('https://subirimagen.mensajito.mx/upload', form, {
+                headers: {
+                    ...formHeaders,
+                },
+            })
+                .then((response) => {
+                    // console.log(response);
+                })
+                .catch((error) => {
+                    // console.log(error);
+                });
+        });
+    }
+}
+
 exports.detect_usb = detect_usb;
 exports.list_files = list_files;
+exports.copyFile = copyFile;
+exports.copyLogo = copyLogo;
