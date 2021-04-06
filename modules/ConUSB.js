@@ -36,6 +36,16 @@ const list_files = () => {
     });
 };
 
+const list_files_audio = () => {
+    return new Promise((resolve, reject) => {
+        const dirname = '/home/pi/audios';
+        const files_audio = fs.readdir(dirname, (err, filenames) => {
+            let files_mp3 = filenames.filter(el => path.extname(el) === '.mp3');
+            resolve(files_mp3);
+        });
+    });
+};
+
 const copyFile = async (archivo) => {
     const dirname = '/media/pi';
     let dir = await detect_usb();
@@ -109,5 +119,6 @@ const copyLogo = async (archivo, id_trans, tipo) => {
 
 exports.detect_usb = detect_usb;
 exports.list_files = list_files;
+exports.list_files_audio = list_files_audio;
 exports.copyFile = copyFile;
 exports.copyLogo = copyLogo;

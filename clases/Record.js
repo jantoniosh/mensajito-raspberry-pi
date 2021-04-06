@@ -16,7 +16,6 @@ class Record {
         this.setFecha();
         this.nombre = nombre.replace(/ /g,"_");
         this.archivo = `/home/pi/audios/${this.nombre}_${this.fecha}.mp3`;
-        console.log(this.archivo);
     }
 
     runRecord() {

@@ -6,6 +6,7 @@
   "dependencies": {
     "axios": "^0.21.1",
     "body-parser": "^1.19.0",
+    "check-internet-connected": "^2.0.5",
     "child_process": "^1.0.2",
     "configparser": "^0.3.9",
     "cors": "^2.8.5",
@@ -16,10 +17,11 @@
     "is-online": "^9.0.0",
     "macaddress": "^0.5.1",
     "mysql": "^2.18.1",
+    "node-fetch": "^2.6.1",
     "rpi-wifi-connection": "^1.0.17",
     "socket.io": "^3.1.1",
     "socket.io-client": "^3.1.2",
-    "urllib": "^2.36.1",
+    "urllib": "^2.23.0",
     "usb": "^1.6.5",
     "usb-detection": "^4.10.0",
     "xspf": "^0.0.1"

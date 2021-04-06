@@ -45,7 +45,6 @@ const get_link = (mac_e) => {
 
 const getInfo = async () => {
 
-    console.log("Pidiendo Info");
     const iface_0 = "eth0";
     const iface_1 = "wlan0";
     let ip_e = "";

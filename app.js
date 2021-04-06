@@ -1,13 +1,14 @@
 const express = require('express')
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const ConfigInfo = require('./modules/ConfigInfo');
 const ConWifi = require('./modules/ConWiFi');
 const ConUSB = require('./modules/ConUSB');
+const AudioUSB = require('./modules/AudioUSB');
 const DataBase = require('./clases/DataBase');
 const Stream = require('./clases/Stream');
 const Record = require('./clases/Record');
 const io_client = require("socket.io-client");
+const { JSON_categoria } = require('./modules/PrettyFun');
 
 const socket_gen = new io_client('https://socket.mensajito.mx/', {
     transports: ['websocket', 'polling', 'flashsocket']
@@ -15,7 +16,10 @@ const socket_gen = new io_client('https://socket.mensajito.mx/', {
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
+app.use(express.urlencoded({
+    extended: true
+}));
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 
@@ -24,6 +28,7 @@ const dataBase = new DataBase("localhost", "mensajito", "mensajito2021", "mensaj
 const stream = new Stream();
 const record = new Record();
 const usbDetect = require('usb-detection');
+const { checkInternet } = require('./modules/CheckInternet');
 usbDetect.startMonitoring();
 
 
@@ -38,15 +43,19 @@ io.on('connection', (socket) => {
 
     let event_contador;
     socket.on('stream', async (msg) => {
-        console.log(msg);
         let resp = await dataBase.getConfig();
         let info = await ConfigInfo.getInfo();
+        console.log('Stream:', msg);
         if (msg) {
-            console.log('Iniciar Transmisión');
+            let audio = await AudioUSB.checkAudioUSB();
+            socket.emit("audio_usb", audio);
+            let internet = await checkInternet();
+            console.log('Internet:', internet);
+            socket.emit("internet", internet);
             stream.setDatos(resp.nombre, resp.ubicacion, resp.descripcion, info.link, info.mountpoint);
             stream.getConfigFile();
             stream.readListeners();
-            event_contador = setInterval(async () => { await contador(info.mountpoint) }, 500);
+            event_contador = setInterval(async () => { await contador(info.mountpoint) }, 1000);
             stream.runStream();
         }
         else {
@@ -55,8 +64,11 @@ io.on('connection', (socket) => {
             stream.stopStream();
         }
     });
-    socket.on('record', (msg) => {
-        console.log(msg);
+
+    socket.on('record', async (msg) => {
+        console.log('Record:', msg);
+        let audio = await AudioUSB.checkAudioUSB();
+        socket.emit("audio_usb", audio);
         let rec = msg.split('@');
         if (rec[0] === 'true') {
             record.setDatos(rec[1]);
@@ -68,29 +80,16 @@ io.on('connection', (socket) => {
     });
 
     socket.on('imagen', async (msg) => {
-        console.log(msg);
         if (msg.tipo === 'Imagen Transmisor') {
             ConUSB.copyFile(msg.nombre);
         }
         else if (msg.tipo === 'Imagen Plataforma' || msg.tipo === 'Imagen Header') {
-            let resp = await dataBase.getConfig();
+            let config = await dataBase.getConfig();
             let info = await ConfigInfo.getInfo();
             let tipo = '';
-            let json_socket = {
-                "name": resp.nombre,
-                "description": resp.descripcion,
-                "slug": info.mountpoint,
-                "facebook_url": resp.facebook,
-                "twitter_url": resp.twitter,
-                "instagram_url": resp.instagram,
-                "web_url": resp.web,
-                "locacion": resp.ubicacion,
-                "mixcloud": resp.mixcloud,
-                "trans_url": `https://radio.mensajito.mx/${info.mountpoint}`
-            }
+            let json_socket = JSON_categoria(config, info);
             msg.tipo === 'Imagen Plataforma' ? tipo = 'logo' : tipo = 'header';
             ConUSB.copyLogo(msg.nombre, info.mountpoint, tipo);
-            console.log(json_socket);
             socket_gen.emit("categoria", json_socket);
         }
     });
@@ -119,33 +118,14 @@ app.get("/config", async (req, res) => {
 
 
 app.post("/config", async (req, res) => {
-    let nombre = req.body.estacion;
-    let ubicacion = req.body.ubicacion;
-    let descripcion = req.body.descripcion;
-    let facebook = req.body.facebook;
-    let instagram = req.body.instagram;
-    let twitter = req.body.twitter;
-    let mixcloud = req.body.mixcloud;
-    let web = req.body.web;
-    let tags = req.body.tags;
+    let data = req.body;
     // Guardando Datos en Base de Datos Local
-    dataBase.postConfig(nombre, ubicacion, descripcion, facebook, instagram, twitter, mixcloud, web, tags);
+    console.log(data);
+    dataBase.postConfig(data.nombre, data.ubicacion, data.descripcion, data.facebook, data.instagram, data.twitter, data.mixcloud, data.web, data.tags);
     // Enviando Datos a Internet
-    let resp = await dataBase.getConfig();
+    let config = await dataBase.getConfig();
     let info = await ConfigInfo.getInfo();
-    let json_socket = {
-        "name": resp.nombre,
-        "description": resp.descripcion,
-        "slug": info.mountpoint,
-        "facebook_url": resp.facebook,
-        "twitter_url": resp.twitter,
-        "instagram_url": resp.instagram,
-        "web_url": resp.web,
-        "locacion": resp.ubicacion,
-        "mixcloud": resp.mixcloud,
-        "trans_url": `https://radio.mensajito.mx/${info.mountpoint}`
-    }
-    console.log(json_socket);
+    let json_socket = JSON_categoria(config, info);
     socket_gen.emit("categoria", json_socket);
     res.send(json_socket);
 });
@@ -165,6 +145,12 @@ app.post("/programa", (req, res) => {
     res.send('Datos OK');
 });
 
+app.post("/programa_del", (req, res) => {
+    let id = req.body.id;
+    dataBase.deletePrograma(id);
+    res.send('Datos OK');
+});
+
 // Servicios Obtener Nombres de Programas
 app.get("/programas", async (req, res) => {
     let resp = await dataBase.getProgramas();
@@ -173,7 +159,11 @@ app.get("/programas", async (req, res) => {
 
 app.get("/usb_files", async (req, res) => {
     let a = await ConUSB.list_files();
-    console.log(a);
+    res.send(a);
+});
+
+app.get("/usb_files_audio", async (req, res) => {
+    let a = await ConUSB.list_files_audio();
     res.send(a);
 });
 
