@@ -4,17 +4,38 @@ const fs = require('fs');
 const axios = require('axios');
 const { exec } = require("child_process");
 
-const detect_usb = () => {
+const detectUSB = () => {
     const dirname = '/media/pi';
     return fs.promises.readdir(dirname).then(files => {
         return files.length !== 0;
     });
 }
 
+const nameUSB = async () => {
+    const dirname = '/media/pi';
+    return new Promise(async (resolve, reject) => {
+        let dir = await detectUSB();
+        if (dir) {
+            fs.readdir(dirname, (err, filenames) => {
+                if (err) {
+                    onError(err);
+                    return;
+                }
+                let usb = filenames[0];
+                let usbPath = `${dirname}/${usb}`;
+                resolve(usbPath);
+            });
+        }
+        else {
+            resolve(false);
+        }
+    });
+}
+
 const list_files = () => {
     return new Promise(async (resolve, reject) => {
         const dirname = '/media/pi';
-        let dir = await detect_usb();
+        let dir = await detectUSB();
         console.log(dir);
         if (dir) {
             fs.readdir(dirname, (err, filenames) => {
@@ -48,7 +69,7 @@ const list_files_audio = () => {
 
 const copyFile = async (archivo) => {
     const dirname = '/media/pi';
-    let dir = await detect_usb();
+    let dir = await detectUSB();
     console.log(dir);
     if (dir) {
         fs.readdir(dirname, (err, filenames) => {
@@ -86,7 +107,7 @@ const copyFile = async (archivo) => {
 
 const copyLogo = async (archivo, id_trans, tipo) => {
     const dirname = '/media/pi';
-    let dir = await detect_usb();
+    let dir = await detectUSB();
     console.log(dir);
     if (dir) {
         fs.readdir(dirname, (err, filenames) => {
@@ -117,8 +138,9 @@ const copyLogo = async (archivo, id_trans, tipo) => {
     }
 }
 
-exports.detect_usb = detect_usb;
+exports.detectUSB = detectUSB;
 exports.list_files = list_files;
 exports.list_files_audio = list_files_audio;
 exports.copyFile = copyFile;
 exports.copyLogo = copyLogo;
+exports.nameUSB = nameUSB;

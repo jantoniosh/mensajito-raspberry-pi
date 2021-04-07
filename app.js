@@ -9,6 +9,8 @@ const Stream = require('./clases/Stream');
 const Record = require('./clases/Record');
 const io_client = require("socket.io-client");
 const { JSON_categoria } = require('./modules/PrettyFun');
+const { checkInternet } = require('./modules/CheckInternet');
+const { DeleteAudio, CopyAudio } = require('./modules/AudioData');
 
 const socket_gen = new io_client('https://socket.mensajito.mx/', {
     transports: ['websocket', 'polling', 'flashsocket']
@@ -27,9 +29,7 @@ const port = 3000;
 const dataBase = new DataBase("localhost", "mensajito", "mensajito2021", "mensajito");
 const stream = new Stream();
 const record = new Record();
-const usbDetect = require('usb-detection');
-const { checkInternet } = require('./modules/CheckInternet');
-usbDetect.startMonitoring();
+
 
 
 // Servidor Socket.io
@@ -169,6 +169,17 @@ app.get("/usb_files_audio", async (req, res) => {
 
 app.get("/get_img", async (req, res) => {
     res.sendFile('/var/www/html/img/fondo.jpg');
+});
+
+app.post("/audio_file", async (req, res) => {
+    if (req.body.tipo === "Eliminar") {
+        DeleteAudio(req.body.nombre);
+        res.send('ok');
+    }
+    else if (req.body.tipo === "Descargar") {
+        let copy = await CopyAudio(req.body.nombre);
+        res.send(copy);
+    }
 });
 
 http.listen(port, () => {
