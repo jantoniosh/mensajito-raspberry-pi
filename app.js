@@ -132,6 +132,7 @@ app.post("/config", async (req, res) => {
 
 // Servicios de WiFi
 app.post("/wifi", async (req, res) => {
+    console.log(req.body);
     let ssid = req.body.ssid;
     let pass = req.body.password;
     await ConWifi.conWiFi(ssid, pass);
@@ -141,6 +142,7 @@ app.post("/wifi", async (req, res) => {
 // Servicios Agregar Programas
 app.post("/programa", (req, res) => {
     let nombre = req.body.nombre;
+    console.log(nombre);
     dataBase.postPrograma(nombre);
     res.send('Datos OK');
 });

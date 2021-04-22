@@ -40,7 +40,7 @@ const get_mem = () => {
 
 const get_link = (mac_e) => {
     let mountpoint = mac_e.replace(/:/g,"");
-    return [mountpoint, `radio.mensajito.mx/${mountpoint}`];
+    return [mountpoint, `https://mensajito.mx/category/en-vivo/${mountpoint}`];
 }
 
 const getInfo = async () => {
